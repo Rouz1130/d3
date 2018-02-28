@@ -1,38 +1,112 @@
-import {Component, NgModule} from '@angular/core';
-import {BrowserModule} from '@angular/platform-browser';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {NgxChartsModule} from '@swimlane/ngx-charts';
-import {multi, single} from '../data';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ViewEncapsulation,
+  ChangeDetectionStrategy,
+  ContentChild,
+  TemplateRef
+} from '@angular/core';
+import { treemap, stratify } from 'd3-hierarchy';
 
 
 @Component({
-  selector: 'my-app',
+  selector: 'ngx-charts-tree-map',
   template: `
-    <ngx-charts-tree-map
-      [view]="view"
-      [scheme]="colorScheme"
-      [results]="single"
-      (select)="onSelect($event)">
-    </ngx-charts-tree-map>
-  `
+  <ngx-charts-chart
+  [view]="[width, height]"
+  [showLegend]="false"
+  [animations]="animations">
+  <svg:g [attr.transform]="transform" class="tree-map chart">
+    <svg:g ngx-charts-tree-map-cell-series
+      [colors]="colors"
+      [data]="data"
+      [dims]="dims"
+      [tooltipDisabled]="tooltipDisabled"
+      [tooltipTemplate]="tooltipTemplate"
+      [valueFormatting]="valueFormatting"
+      [labelFormatting]="labelFormatting"
+      [gradient]="gradient"
+      [animations]="animations"
+      (select)="onClick($event)"
+    />
+  </svg:g>
+</ngx-charts-chart>
+`,
+  styleUrls: ['app.component.css'],
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AppComponent {
-  single: any[];
-  multi: any[];
+export class AppComponent  {
 
-  view: any[] = [700, 400];
+  @Input() results;
+  @Input() tooltipDisabled: boolean = false;
+  @Input() valueFormatting: any;
+  @Input() labelFormatting: any;
+  @Input() gradient: boolean = false;
 
-  colorScheme = {
-    domain: ['#5AA454', '#A10A28', '#C7B42C', '#AAAAAA']
-  };
+  @Output() select = new EventEmitter();
 
-  constructor() {
-    Object.assign(this, {single})   
-    console.log(single)
+  @ContentChild('tooltipTemplate') tooltipTemplate: TemplateRef<any>;
+
+  dims: any;
+  domain: any;
+  transform: any;
+
+  treemap: any;
+  data: any;
+  margin = [10, 10, 10, 10];
+
+  update(): void {
+    // .update();
+
+    this.dims = ({
+      // width: this.width,
+      // height: this.height,
+      margins: this.margin
+    });
+
+    this.domain = this.getDomain();
+
+    this.treemap = treemap<any>()
+      .size([this.dims.width, this.dims.height]);
+
+    const rootNode = {
+      name: 'root',
+      value: 0,
+      isRoot: true
+    };
+
+    const root = stratify<any>()
+      .id(d => {
+        let label = d.name;
+
+        if (label.constructor.name === 'Date') {
+          label = label.toLocaleDateString();
+        } else {
+          label = label.toLocaleString();
+        }
+        return label;
+      })
+      .parentId(d => d.isRoot ? null : 'root')
+      ([rootNode, ...this.results])
+      .sum(d => d.value);
+
+    this.data = this.treemap(root);
+
+
+    this.transform = `translate(${ this.dims.xOffset } , ${ this.margin[0] })`;
   }
-  
-  onSelect(event) {
-    console.log(event);
+
+  getDomain(): any[] {
+    return this.results.map(d => d.name);
   }
-  
+
+  onClick(data): void {
+    this.select.emit(data);
+  }
+
+ 
+
 }

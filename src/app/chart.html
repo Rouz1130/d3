@@ -1,9 +1,22 @@
 
 <ngx-charts-tree-map
-[view]="view"
-[scheme]="colorScheme"
-[results]="single"
-(select)="onSelect($event)">
+[view]="[width, height]"
+[showLegend]="false"
+[animations]="animations">
+<svg:g [attr.transform]="transform" class="tree-map chart">
+  <svg:g ngx-charts-tree-map-cell-series
+    [colors]="colors"
+    [data]="data"
+    [dims]="dims"
+    [tooltipDisabled]="tooltipDisabled"
+    [tooltipTemplate]="tooltipTemplate"
+    [valueFormatting]="valueFormatting"
+    [labelFormatting]="labelFormatting"
+    [gradient]="gradient"
+    [animations]="animations"
+    (select)="onClick($event)"
+  />
+</svg:g>
 </ngx-charts-tree-map>
 <my-app>
     loading...
